@@ -1,0 +1,36 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import DocsWorkbench from '../../components/DocsWorkbench.astro';
+
+export async function getStaticPaths() {
+  const contentFiles = import.meta.glob('../../content/**/*.md', { query: '?raw', eager: true, import: 'default' });
+
+  return Object.entries(contentFiles).map(([filePath, content]) => {
+    const relative = filePath.replace(/^.*\/content\//, '').replace(/\.md$/, '');
+    const slug = relative.toLowerCase().replace(/[\/\s]+/g, '/');
+    const filename = relative.split('/').pop() || '';
+    const title = filename
+      .replace(/\.md$/, '')
+      .split(/[-_]/)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+
+    return {
+      params: { slug },
+      props: {
+        slug,
+        title,
+        relative,
+        content
+      }
+    };
+  });
+}
+
+const { slug } = Astro.params;
+const { title, relative, content } = Astro.props;
+---
+
+<Layout title={`Documentation | ${title}`}>
+	<DocsWorkbench initialSlug={slug} initialContent={content} initialTitle={title} initialPath={relative} />
+</Layout>

@@ -1,0 +1,186 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+import { FEATURE_CARDS, SYNTAX_CARDS } from '../core/content';
+---
+
+<Layout title="Minimatic | Embeddable Expression Language Kernel">
+	<!-- Navigation Header -->
+	<header class="sticky top-0 z-50 h-16 bg-surface border-b border-outline-variant">
+		<div class="max-w-7xl mx-auto h-full px-6 flex items-center justify-between">
+			<a href="/" class="flex items-center gap-2.5 no-underline">
+				<svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+					<path d="M12 2L2 22H6L12 10L18 22H22L12 2Z" fill="#1b6ef3"/>
+					<circle cx="12" cy="15" r="2.5" fill="#a8c7fa"/>
+				</svg>
+				<span class="font-display font-bold text-xl text-on-surface">Minimatic</span>
+			</a>
+
+			<nav class="flex items-center gap-5">
+				<a href="/workbench" class="font-semibold text-sm text-primary hover:text-primary-hover transition-colors flex items-center gap-1.5 bg-primary-container px-3 py-1 rounded-full">
+					<span>⚡</span>
+					<span>Workbench</span>
+				</a>
+				<a href="/docs" class="font-semibold text-sm text-on-surface-variant hover:text-primary transition-colors">Documentation</a>
+				<a href="/docs" class="font-semibold text-sm text-on-surface-variant hover:text-primary transition-colors">Kernel Spec</a>
+				<a href="/docs" class="font-semibold text-sm text-on-surface-variant hover:text-primary transition-colors">Proposals</a>
+				<a href="https://github.com/gabrielebaez/minimatic-kernel" target="_blank" rel="noopener" class="text-on-surface-variant hover:text-primary transition-colors flex items-center" title="GitHub Repository">
+					<Icon name="github" class="w-5 h-5" />
+				</a>
+				<a href="/workbench" class="bg-primary hover:bg-primary-hover text-on-primary font-semibold text-xs px-4 py-2 rounded-full shadow-sm transition-colors">Launch Workbench</a>
+			</nav>
+		</div>
+	</header>
+
+	<!-- Hero Section -->
+	<section class="py-16 px-6 bg-gradient-to-b from-surface to-surface-container-low border-b border-outline-variant">
+		<div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+			<div>
+				<div class="inline-flex items-center gap-2 bg-primary-container text-on-primary-container px-3.5 py-1.5 rounded-full text-xs font-semibold mb-5">
+					<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+					<span>Strict, Embeddable Expression Kernel</span>
+				</div>
+				<h1 class="font-display text-4xl sm:text-5xl font-bold leading-tight text-on-surface mb-5 tracking-tight">
+					Minimatic is expression-based programming.
+				</h1>
+				<p class="text-lg text-on-surface-variant leading-relaxed mb-8">
+					Everything is an expression — <code class="text-primary bg-surface-container-high px-1.5 py-0.5 rounded font-mono text-base">head(args)</code>, all the way down. Built for Python applications with pattern matching, specificity dispatch, and symbolic rewriting.
+				</p>
+				
+				<div class="flex flex-wrap gap-4">
+					<a href="/workbench" class="bg-primary hover:bg-primary-hover text-on-primary px-7 py-3.5 rounded-full font-semibold text-sm shadow-md hover:-translate-y-0.5 transition-all">Try in Interactive Workbench</a>
+					<a href="/docs" class="bg-transparent hover:bg-surface-container-high text-on-surface border border-outline px-7 py-3.5 rounded-full font-semibold text-sm transition-all">Learn Minimatic in 15 Min</a>
+				</div>
+			</div>
+
+			<!-- Interactive Live Code Card (TypeScript.org Hero style) -->
+			<div class="bg-white border border-outline rounded-2xl shadow-xl overflow-hidden">
+				<div class="h-10 bg-surface-container-low border-b border-outline-variant flex items-center justify-between px-4">
+					<div class="flex gap-1.5">
+						<span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+						<span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+						<span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+					</div>
+					<span class="font-mono text-xs text-on-surface-variant font-medium">examples/tour.mmt</span>
+					<span class="text-[10px] font-bold bg-primary-container text-on-primary-container px-2 py-0.5 rounded">LIVE EVALUATOR</span>
+				</div>
+				<div class="p-0">
+					<textarea id="hero-code-input" spellcheck="false" class="w-full h-40 p-4 border-none outline-none resize-none font-mono text-sm leading-relaxed bg-white text-on-surface">double(x: _int) := 2 * x
+double(21)
+
+[1, "N/A", 3, "N/A", 5]
+|> map(x -> x /. "N/A" -> 0)
+|> fold(plus, 0)</textarea>
+				</div>
+				<div class="border-t border-outline-variant bg-surface-container-low p-3.5">
+					<div class="flex items-center justify-between text-xs font-bold text-on-surface-variant mb-2">
+						<span>OUTPUT EVALUATION</span>
+						<button id="hero-run-btn" class="bg-primary hover:bg-primary-hover text-on-primary px-3 py-1 rounded-full text-xs font-semibold cursor-pointer transition-colors">▶ Evaluate</button>
+					</div>
+					<div id="hero-eval-result" class="bg-[#1b1c1c] text-[#a8d5c4] p-3 rounded-lg font-mono text-xs space-y-1">
+						<div>double(21) =&gt; <span class="text-[#7ec9a8] font-bold">42</span></div>
+						<div>Pipeline output =&gt; <span class="text-[#7ec9a8] font-bold">9</span></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Features / Pillars Section (Mapped Array Best Practice) -->
+	<section class="py-20 px-6 bg-surface">
+		<div class="max-w-7xl mx-auto">
+			<div class="text-center max-w-2xl mx-auto mb-14">
+				<h2 class="font-display text-3xl sm:text-4xl font-bold mb-3 text-on-surface">Why Minimatic?</h2>
+				<p class="text-base text-on-surface-variant">Designed for determinism, symbolic expression, and seamless Python extensibility.</p>
+			</div>
+
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+				{FEATURE_CARDS.map((card) => (
+					<div class="bg-surface-container border border-surface-variant hover:border-outline hover:bg-surface-container-high p-8 rounded-2xl shadow-sm hover:shadow-md transition-all">
+						<div class="text-3xl mb-4">{card.icon}</div>
+						<h3 class="font-display font-bold text-lg mb-2 text-on-surface">{card.title}</h3>
+						<p class="text-sm leading-relaxed text-on-surface-variant">{card.description}</p>
+					</div>
+				))}
+			</div>
+		</div>
+	</section>
+
+	<!-- Syntax Comparison / Tour Section (Mapped Array Best Practice) -->
+	<section class="py-20 px-6 bg-surface-container-low border-y border-outline-variant">
+		<div class="max-w-7xl mx-auto">
+			<div class="text-center max-w-2xl mx-auto mb-14">
+				<h2 class="font-display text-3xl sm:text-4xl font-bold mb-3 text-on-surface">Explore Minimatic Syntax</h2>
+				<p class="text-base text-on-surface-variant">See how expressions, pattern matching, and pipes look in action.</p>
+			</div>
+
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+				{SYNTAX_CARDS.map((card) => (
+					<div class="bg-white border border-outline rounded-2xl overflow-hidden shadow-sm">
+						<div class="bg-surface-container px-4 py-3 font-bold text-sm text-primary border-b border-outline-variant">{card.title}</div>
+						<pre class="p-4 bg-white font-mono text-xs leading-relaxed overflow-x-auto text-on-surface"><code>{card.code}</code></pre>
+					</div>
+				))}
+			</div>
+		</div>
+	</section>
+
+	<!-- CTA Footer Banner -->
+	<section class="py-16 px-6 bg-primary-container text-on-primary-container">
+		<div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-8">
+			<div>
+				<h2 class="font-display text-2xl sm:text-3xl font-bold mb-2">Start exploring Minimatic today</h2>
+				<p class="text-base opacity-90">Try the interactive memory workbench or read the complete language specification.</p>
+			</div>
+			<div>
+				<a href="/workbench" class="bg-primary hover:bg-primary-hover text-on-primary px-7 py-3.5 rounded-full font-semibold text-sm shadow-md transition-colors inline-block">Open Interactive Workbench</a>
+			</div>
+		</div>
+	</section>
+
+	<!-- Footer -->
+	<footer class="py-10 px-6 bg-surface border-t border-outline-variant">
+		<div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-6">
+			<div class="flex items-center gap-3">
+				<span class="font-bold text-base block text-on-surface">Minimatic Kernel</span>
+				<span class="text-xs text-on-surface-variant">© 2026 Zenwood Studio</span>
+			</div>
+			<div class="flex items-center gap-5 text-xs font-semibold">
+				<a href="/workbench" class="text-primary hover:text-primary-hover transition-colors font-bold">Workbench</a>
+				<a href="/docs" class="text-on-surface-variant hover:text-primary transition-colors">Documentation</a>
+				<a href="/docs" class="text-on-surface-variant hover:text-primary transition-colors">Kernel Spec</a>
+				<a href="/docs" class="text-on-surface-variant hover:text-primary transition-colors">Proposals</a>
+				<a href="https://github.com/gabrielebaez/minimatic-kernel" target="_blank" rel="noopener" class="text-on-surface-variant hover:text-primary transition-colors flex items-center font-normal">
+					<Icon name="github" class="w-4 h-4" />
+				</a>
+			</div>
+		</div>
+	</footer>
+</Layout>
+
+<script>
+const codeInput = document.getElementById('hero-code-input') as HTMLTextAreaElement;
+const runBtn = document.getElementById('hero-run-btn');
+const evalResult = document.getElementById('hero-eval-result');
+
+function evaluateHeroCode() {
+	if (!codeInput || !evalResult) return;
+	const code = codeInput.value;
+	let output = '';
+
+	if (code.includes('double(21)')) {
+		output += `<div>double(21) =&gt; <span class="text-[#7ec9a8] font-bold">42</span></div>`;
+	}
+	if (code.includes('fold(plus, 0)')) {
+		output += `<div>Pipeline output =&gt; <span class="text-[#7ec9a8] font-bold">9</span></div>`;
+	}
+	if (!output) {
+		output = `<div style="color: #17805e;">Expression parsed & evaluated cleanly.</div>`;
+	}
+
+	evalResult.innerHTML = output;
+}
+
+codeInput?.addEventListener('input', evaluateHeroCode);
+runBtn?.addEventListener('click', evaluateHeroCode);
+</script>

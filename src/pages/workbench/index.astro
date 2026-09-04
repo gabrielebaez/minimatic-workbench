@@ -1,0 +1,240 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+import { PRESET_OPTIONS } from '../../core/content';
+---
+
+<Layout title="Minimatic Workbench | Tour Sandbox">
+	<div class="flex flex-col h-screen w-screen overflow-hidden bg-surface text-on-surface">
+		<!-- Workbench Top Toolbar (Simplified & Focused) -->
+		<header class="h-16 bg-surface border-b border-outline-variant flex items-center justify-between px-6 gap-4 flex-shrink-0">
+			<!-- Brand -->
+			<div class="flex items-center gap-3 min-w-[200px]">
+				<a href="/" class="flex items-center gap-2.5 no-underline text-on-surface">
+					<svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+						<path d="M12 2L2 22H6L12 10L18 22H22L12 2Z" fill="#1b6ef3"/>
+						<circle cx="12" cy="15" r="2.5" fill="#a8c7fa"/>
+					</svg>
+					<span class="font-display font-bold text-xl text-on-surface tracking-tight">Minimatic</span>
+				</a>
+				<span class="bg-primary-container text-on-primary-container text-xs font-semibold px-2.5 py-0.5 rounded-full">Workbench</span>
+			</div>
+
+			<!-- Controls Bar -->
+			<div class="flex items-center gap-3 flex-1 max-w-[720px] justify-center">
+				<!-- Run Button -->
+				<button id="wb-run-btn" class="bg-primary hover:bg-primary-hover text-on-primary font-semibold text-xs px-5 py-2 rounded-full cursor-pointer shadow-sm transition-all flex items-center gap-2 group">
+					<span class="text-sm transition-transform group-hover:scale-110">▶</span>
+					<span>Run Code</span>
+					<span class="bg-white/20 text-white text-[10px] font-mono px-1.5 py-0.5 rounded ml-1">⌘↵</span>
+				</button>
+
+				<!-- Official Tour Presets Dropdown (Mapped Array Best Practice) -->
+				<div class="relative">
+					<select id="wb-preset-select" class="h-9 pl-3.5 pr-8 bg-surface-dim border border-outline-variant rounded-full text-xs font-medium text-on-surface outline-none cursor-pointer focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all appearance-none">
+						{PRESET_OPTIONS.map(opt => (
+							<option value={opt.value}>{opt.label}</option>
+						))}
+					</select>
+					<svg class="absolute right-3 top-2.5 text-on-surface-variant pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+						<path d="M7 10l5 5 5-5z"></path>
+					</svg>
+				</div>
+
+				<!-- Share & Reset Buttons -->
+				<button id="wb-share-btn" class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface border border-outline-variant font-medium text-xs px-3.5 py-2 rounded-full cursor-pointer transition-colors flex items-center gap-1.5" title="Copy URL Share Link">
+					<span>🔗</span>
+					<span>Share</span>
+				</button>
+
+				<button id="wb-reset-btn" class="bg-transparent hover:bg-surface-container-high text-on-surface-variant border border-outline-variant font-medium text-xs px-3 py-2 rounded-full cursor-pointer transition-colors">
+					Reset
+				</button>
+			</div>
+
+			<!-- Nav links -->
+			<nav class="flex items-center gap-3">
+				<a href="/docs" class="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors">Docs</a>
+				<a href="https://github.com/gabrielebaez/minimatic-kernel" target="_blank" rel="noopener" class="text-on-surface-variant hover:text-primary p-1.5 rounded-full transition-colors flex items-center" title="GitHub Repository">
+					<Icon name="github" class="w-5 h-5" />
+				</a>
+			</nav>
+		</header>
+
+		<!-- Main Workspace Grid -->
+		<div class="grid grid-cols-1 lg:grid-cols-2 h-[calc(100vh-64px)] overflow-hidden">
+			<!-- Left Editor Pane -->
+			<div class="flex flex-col h-full overflow-hidden border-r border-outline-variant bg-white">
+				<div class="h-10 bg-surface-container-low border-b border-outline-variant flex items-center justify-between px-4 flex-shrink-0">
+					<div class="flex items-center gap-2">
+						<span class="text-xs">📝</span>
+						<span class="font-semibold text-xs text-on-surface">Minimatic Source Code</span>
+					</div>
+					<span class="text-[11px] font-mono text-on-surface-variant" id="wb-line-count">Line 1, Col 1</span>
+				</div>
+				
+				<!-- CodeMirror Editor Container -->
+				<div id="wb-editor-container" class="flex-1 overflow-hidden font-mono text-xs"></div>
+			</div>
+
+			<!-- Right Output Console -->
+			<div class="flex flex-col h-full overflow-hidden bg-surface-container-low">
+				<!-- Output Header & Status Badge -->
+				<div class="h-10 bg-surface border-b border-outline-variant flex items-center justify-between px-4 flex-shrink-0">
+					<div class="flex items-center gap-2">
+						<span class="text-xs">⚡</span>
+						<span class="font-semibold text-xs text-on-surface">Evaluation Output</span>
+					</div>
+					<div class="flex items-center gap-2">
+						<span id="wb-status-badge" class="text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant">Ready</span>
+						<button id="wb-clear-out-btn" class="text-[11px] text-on-surface-variant hover:text-primary cursor-pointer px-2 py-0.5 rounded transition-colors">Clear</button>
+					</div>
+				</div>
+
+				<!-- Console Stdout Terminal -->
+				<div class="flex-1 p-6 overflow-y-auto">
+					<div class="bg-[#1b1c1c] text-[#f8f9fa] border border-outline-variant rounded-2xl p-5 font-mono text-xs shadow-md h-full flex flex-col">
+						<div class="flex items-center justify-between text-[11px] text-[#95908d] border-b border-gray-800 pb-2 mb-3">
+							<span class="font-bold tracking-wider text-primary">STDOUT EVALUATION LOG</span>
+							<span id="wb-exec-time" class="text-[10px]">-- ms</span>
+						</div>
+						<div id="wb-console-log" class="flex-1 space-y-2 text-xs font-mono leading-relaxed overflow-x-auto">
+							<div class="text-gray-500">// Press "Run Code" or ⌘+Enter to evaluate expression</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</Layout>
+
+<script>
+import { createEditor, type EditorInstance } from '../../core/editor';
+import { evaluateCode, type LogEntry } from '../../core/evaluator';
+import { PRESETS } from '../../core/content';
+
+// UI Elements
+const editorContainer = document.getElementById('wb-editor-container') as HTMLDivElement;
+const runBtn = document.getElementById('wb-run-btn') as HTMLButtonElement;
+const shareBtn = document.getElementById('wb-share-btn') as HTMLButtonElement;
+const resetBtn = document.getElementById('wb-reset-btn') as HTMLButtonElement;
+const presetSelect = document.getElementById('wb-preset-select') as HTMLSelectElement;
+const statusBadge = document.getElementById('wb-status-badge') as HTMLSpanElement;
+const consoleLog = document.getElementById('wb-console-log') as HTMLDivElement;
+const execTimeEl = document.getElementById('wb-exec-time') as HTMLSpanElement;
+const clearOutBtn = document.getElementById('wb-clear-out-btn') as HTMLButtonElement;
+const lineCountEl = document.getElementById('wb-line-count') as HTMLSpanElement;
+
+let editor: EditorInstance | null = null;
+
+function getInitialCode(): string {
+	if (window.location.hash && window.location.hash.startsWith('#code=')) {
+		try {
+			return decodeURIComponent(window.location.hash.replace('#code=', ''));
+		} catch (e) {
+			console.error('Failed to parse URL hash code:', e);
+		}
+	}
+	return PRESETS.tour_full;
+}
+
+function initWorkbenchEditor(codeText: string) {
+	if (!editorContainer) return;
+	if (editor) editor.destroy();
+
+	editor = createEditor({
+		container: editorContainer,
+		initialValue: codeText,
+		onCursorMove(line, col) {
+			if (lineCountEl) {
+				lineCountEl.innerText = `Line ${line}, Col ${col}`;
+			}
+		}
+	});
+}
+
+async function runExecution() {
+	if (!editor || !consoleLog) return;
+	const code = editor.getValue();
+
+	if (statusBadge) {
+		statusBadge.innerText = 'Running...';
+		statusBadge.className = 'text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full bg-yellow-100 text-yellow-800 animate-pulse';
+	}
+
+	consoleLog.innerHTML = '';
+	const result = await evaluateCode(code);
+
+	result.logs.forEach(log => appendLog(log));
+
+	if (execTimeEl) execTimeEl.innerText = `${result.durationMs} ms`;
+
+	if (statusBadge) {
+		if (result.hasErrors) {
+			statusBadge.innerText = 'ERROR';
+			statusBadge.className = 'text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full bg-red-100 text-red-800';
+		} else {
+			statusBadge.innerText = `SUCCESS (${result.durationMs}ms)`;
+			statusBadge.className = 'text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full bg-tertiary-container text-on-tertiary-container';
+		}
+	}
+}
+
+function appendLog(log: LogEntry) {
+	if (!consoleLog) return;
+	const line = document.createElement('div');
+	
+	if (log.type === 'comment') line.className = 'text-gray-500 font-mono italic';
+	else if (log.type === 'clause') line.className = 'text-blue-400 font-mono';
+	else if (log.type === 'error') line.className = 'text-red-400 font-bold font-mono';
+	else line.className = 'text-green-400 font-bold font-mono';
+
+	line.innerText = log.text;
+	consoleLog.appendChild(line);
+}
+
+presetSelect?.addEventListener('change', (e) => {
+	const key = (e.target as HTMLSelectElement).value;
+	const newCode = PRESETS[key] || PRESETS.tour_full;
+	if (editor) editor.setValue(newCode);
+	runExecution();
+});
+
+runBtn?.addEventListener('click', runExecution);
+
+window.addEventListener('keydown', (e) => {
+	if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+		e.preventDefault();
+		runExecution();
+	}
+});
+
+shareBtn?.addEventListener('click', () => {
+	if (!editor) return;
+	const code = editor.getValue();
+	const shareUrl = `${window.location.origin}${window.location.pathname}#code=${encodeURIComponent(code)}`;
+	navigator.clipboard.writeText(shareUrl);
+	
+	const originalText = shareBtn.innerText;
+	shareBtn.innerText = 'Copied!';
+	setTimeout(() => { shareBtn.innerText = originalText; }, 2000);
+});
+
+resetBtn?.addEventListener('click', () => {
+	const currentPresetKey = presetSelect?.value || 'tour_full';
+	if (editor) editor.setValue(PRESETS[currentPresetKey]);
+	runExecution();
+});
+
+clearOutBtn?.addEventListener('click', () => {
+	if (consoleLog) consoleLog.innerHTML = '<div class="text-gray-500">// Console output cleared</div>';
+	if (statusBadge) {
+		statusBadge.innerText = 'Ready';
+		statusBadge.className = 'text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant';
+	}
+});
+
+const initialCode = getInitialCode();
+initWorkbenchEditor(initialCode);
+runExecution();
+</script>

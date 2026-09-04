@@ -1,0 +1,27 @@
+{
+  "name": "minimatic-workbench",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@codemirror/lang-markdown": "6.5.2",
+    "@codemirror/state": "6.7.2",
+    "@tailwindcss/vite": "4.3.3",
+    "astro": "7.3.0",
+    "astro-icon": "1.2.0",
+    "codemirror": "6.0.2",
+    "marked": "18.0.11",
+    "tailwindcss": "4.3.3"
+  },
+  "allowScripts": {
+    "esbuild": true
+  }
+}

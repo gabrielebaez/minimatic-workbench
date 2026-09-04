@@ -1,0 +1,576 @@
+---
+import { Icon } from 'astro-icon/components';
+import { parseContentFiles } from '../utils';
+
+interface Props {
+	initialSlug?: string;
+	initialContent?: string;
+	initialTitle?: string;
+	initialPath?: string;
+}
+
+const { initialSlug, initialContent, initialTitle, initialPath } = Astro.props;
+
+// Read src/content/**/*.md files dynamically from deep nested subfolders
+const contentFiles = import.meta.glob('../content/**/*.md', { query: '?raw', eager: true, import: 'default' });
+
+const { docList, treeRoot } = parseContentFiles(contentFiles);
+const totalDocsCount = docList.length;
+---
+
+<div class="flex flex-col h-screen w-screen overflow-hidden bg-surface text-on-surface">
+	<!-- Navbar (web.dev Google Specs in DESIGN.md) -->
+	<header class="h-15 bg-surface border-b border-outline-variant flex items-center justify-between px-6 gap-4">
+		<div class="flex items-center gap-3 min-w-[220px]">
+			<a href="/" class="flex items-center gap-2.5 no-underline text-on-surface">
+				<svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+					<path d="M12 2L2 22H6L12 10L18 22H22L12 2Z" fill="#1b6ef3"/>
+					<circle cx="12" cy="15" r="2.5" fill="#a8c7fa"/>
+				</svg>
+				<span class="font-display font-bold text-xl text-on-surface tracking-tight">Minimatic</span>
+				<span class="font-medium text-xs text-primary bg-primary-container px-2 py-0.5 rounded-full">Docs</span>
+			</a>
+			<span class="bg-surface-container-high text-on-surface-variant text-[11px] font-semibold px-2 py-0.5 rounded-full border border-outline-variant">v0.1</span>
+		</div>
+
+		<!-- Search Input (web.dev pill input spec) -->
+		<div class="relative flex-1 max-w-[440px] flex items-center">
+			<svg class="absolute left-3.5 text-on-surface-variant" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<circle cx="11" cy="11" r="8"></circle>
+				<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+			</svg>
+			<input type="text" id="doc-search-input" placeholder="Search documentation... (Press '/')" class="w-full h-10 pl-10 pr-4 bg-surface-dim border border-outline-variant rounded-full text-xs text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 focus:bg-white transition-all" />
+		</div>
+
+		<!-- Nav Links -->
+		<nav class="flex items-center gap-2.5">
+			<a href="/workbench" class="font-semibold text-xs text-primary hover:text-primary-hover transition-colors flex items-center gap-1.5 bg-primary-container px-3 py-1.5 rounded-full">
+				<span>⚡</span>
+				<span>Workbench</span>
+			</a>
+			<button class="nav-link-btn active bg-primary text-on-primary font-medium text-xs px-4 py-2 rounded-full cursor-pointer hover:bg-primary-hover shadow-xs transition-all" data-filter="all">All</button>
+			<a href="https://github.com/gabrielebaez/minimatic-kernel" target="_blank" rel="noopener" class="text-on-surface-variant hover:text-primary p-2 rounded-full transition-colors flex items-center" title="GitHub Repository">
+				<Icon name="github" class="w-5 h-5" />
+			</a>
+			<button id="btn-reset" class="bg-transparent text-on-surface border border-outline-variant rounded-full px-4 py-1.5 font-medium text-xs cursor-pointer hover:bg-surface-container-high transition-colors">Reset</button>
+			<button id="btn-copy" class="bg-primary text-on-primary border-none rounded-full px-4 py-2 font-medium text-xs cursor-pointer hover:bg-primary-hover shadow-xs transition-colors">Copy MD</button>
+		</nav>
+	</header>
+
+	<!-- Main Fourfold Workspace -->
+	<div class="grid grid-cols-[280px_1fr_1fr] h-[calc(100vh-60px)] overflow-hidden">
+		<!-- Sidebar Nav (Astro Docs Recursive Folder Tree) -->
+		<aside class="bg-surface-container-lowest border-r border-outline-variant flex flex-col p-4 overflow-hidden">
+			<div class="flex items-center justify-between mb-3 px-2">
+				<span class="text-[11px] font-bold tracking-wider text-on-surface-variant">DOCUMENTATION</span>
+				<span id="doc-count-badge" class="bg-surface-container-high text-on-primary-container text-[10px] font-bold px-2 py-0.5 rounded-full">{totalDocsCount}</span>
+			</div>
+			
+			<nav class="flex-1 overflow-y-auto pr-1">
+				<ul class="flex flex-col gap-1 list-none m-0 p-0 top-level">
+					{treeRoot.map((node) => (
+						<li class="list-none group-li">
+							{node.type === 'folder' ? (
+								<details open class="block group-details">
+									<summary class="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer select-none hover:bg-surface-container-high transition-colors group-summary">
+										<span class="group-label">
+											<span class="text-xs font-bold text-on-surface uppercase tracking-wide large">{node.displayName}</span>
+										</span>
+										<svg aria-hidden="true" class="caret text-on-surface-variant transition-transform duration-200" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+											<path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"></path>
+										</svg>
+									</summary>
+									<ul class="list-none my-1 ml-3 pl-2 border-l border-outline-variant flex flex-col gap-0.5 sub-level">
+										{node.children?.map((child) => (
+											<li class="list-none sub-li">
+												{child.type === 'folder' ? (
+													<details open class="block group-details">
+														<summary class="flex items-center justify-between px-2.5 py-1.5 rounded-md cursor-pointer select-none hover:bg-surface-container-high transition-colors group-summary">
+															<span class="group-label">
+																<span class="text-xs font-semibold text-on-surface">{child.displayName}</span>
+															</span>
+															<svg aria-hidden="true" class="caret text-on-surface-variant transition-transform duration-200" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+																<path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"></path>
+															</svg>
+														</summary>
+														<ul class="list-none my-1 ml-3 pl-2 border-l border-outline-variant flex flex-col gap-0.5 sub-level">
+															{child.children?.map((grandChild) => (
+																<li class="list-none sub-li">
+																	<a 
+																		href={`/docs/${grandChild.slug}`}
+																		class="doc-link-btn block w-full text-left bg-transparent border-none px-2.5 py-1.5 text-xs font-medium text-on-surface-variant rounded-md cursor-pointer hover:bg-surface-container-high hover:text-primary transition-all no-underline"
+																		data-id={grandChild.id}
+																		data-slug={grandChild.slug}
+																		data-title={grandChild.displayName.toLowerCase()}
+																	>
+																		<span>{grandChild.displayName}</span>
+																	</a>
+																</li>
+															))}
+														</ul>
+													</details>
+												) : (
+													<a 
+														href={`/docs/${child.slug}`}
+														class="doc-link-btn block w-full text-left bg-transparent border-none px-2.5 py-1.5 text-xs font-medium text-on-surface-variant rounded-md cursor-pointer hover:bg-surface-container-high hover:text-primary transition-all no-underline"
+														data-id={child.id}
+														data-slug={child.slug}
+														data-title={child.displayName.toLowerCase()}
+													>
+														<span>{child.displayName}</span>
+													</a>
+												)}
+											</li>
+										))}
+									</ul>
+								</details>
+							) : (
+								<a 
+									href={`/docs/${node.slug}`}
+									class="doc-link-btn block w-full text-left bg-transparent border-none px-2.5 py-1.5 text-xs font-medium text-on-surface-variant rounded-md cursor-pointer hover:bg-surface-container-high hover:text-primary transition-all no-underline"
+									data-id={node.id}
+									data-slug={node.slug}
+									data-title={node.displayName.toLowerCase()}
+								>
+									<span>{node.displayName}</span>
+								</a>
+							)}
+						</li>
+					))}
+				</ul>
+			</nav>
+
+			<div class="pt-3 border-t border-outline-variant">
+				<div class="flex items-center gap-2 text-xs text-on-surface-variant">
+					<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+					<span>Deep Module Core Architecture</span>
+				</div>
+			</div>
+		</aside>
+
+		<!-- Left Pane: Mode Switcher (CodeMirror Source vs Rendered Markdown Document) -->
+		<div class="flex flex-col h-full overflow-hidden border-r border-outline-variant bg-white">
+			<div class="h-10 bg-surface-container-low border-b border-outline-variant flex items-center justify-between px-4 flex-shrink-0">
+				<div class="flex items-center gap-2">
+					<span class="text-xs">📝</span>
+					<span class="font-semibold text-xs text-on-surface">Document Editor</span>
+				</div>
+				<!-- View Mode Toggle -->
+				<div class="flex items-center bg-surface-container-high rounded-full p-0.5 border border-outline-variant">
+					<button id="view-mode-editor" class="text-[11px] font-semibold px-3 py-0.5 rounded-full bg-white text-primary shadow-xs cursor-pointer transition-all">Edit Source</button>
+					<button id="view-mode-rendered" class="text-[11px] font-semibold px-3 py-0.5 rounded-full text-on-surface-variant hover:text-on-surface cursor-pointer transition-all">Rendered Doc</button>
+				</div>
+			</div>
+			
+			<!-- CodeMirror Source Editor Container -->
+			<div id="codemirror-wrapper-pane" class="flex-1 overflow-hidden font-mono text-xs"></div>
+			
+			<!-- Final Formatted Rendered Markdown View -->
+			<div id="rendered-doc-view-pane" class="hidden flex-1 p-6 overflow-y-auto font-body text-sm leading-relaxed text-on-surface markdown-render-body"></div>
+		</div>
+
+		<!-- Right Pane: Code Outputs & Inspector Only -->
+		<div class="flex flex-col h-full overflow-hidden bg-surface-container-low">
+			<div class="h-10 bg-surface border-b border-outline-variant flex items-center justify-between px-4 flex-shrink-0">
+				<div class="flex items-center gap-1.5">
+					<span class="text-xs">⚡</span>
+					<span class="font-semibold text-xs text-on-surface">Code Output Inspector</span>
+				</div>
+				<span class="text-[11px] font-medium text-on-surface-variant" id="current-doc-title">{initialTitle || "Minimatic Workbench"}</span>
+			</div>
+
+			<div id="inspector-output-pane" class="flex-1 p-6 overflow-y-auto space-y-6">
+				<!-- Output blocks dynamically rendered here -->
+			</div>
+		</div>
+	</div>
+</div>
+
+<script define:vars={{ propSlug: initialSlug, propContent: initialContent, propTitle: initialTitle, propPath: initialPath }}>
+	window.__INITIAL_DOC__ = {
+		slug: propSlug,
+		content: propContent,
+		title: propTitle,
+		path: propPath
+	};
+</script>
+
+<script>
+import { marked } from 'marked';
+import { createEditor, type EditorInstance } from '../core/editor';
+import { parseContentFiles, renderMMT, renderMinimatic, runPythonCode } from '../utils';
+
+// Read src/content/**/*.md directly in client script
+const contentFiles = import.meta.glob('../content/**/*.md', { query: '?raw', eager: true, import: 'default' });
+
+const { docList: DOC_PRESETS } = parseContentFiles(contentFiles);
+
+let activeSlug = '';
+const initialProps = (window as any).__INITIAL_DOC__ || {};
+
+if (initialProps.slug) {
+	activeSlug = initialProps.slug;
+} else {
+	const pathname = window.location.pathname.replace(/\/$/, '');
+	if (pathname.startsWith('/docs/') && pathname.length > 6) {
+		activeSlug = pathname.replace('/docs/', '');
+	} else {
+		activeSlug = DOC_PRESETS[0]?.slug || '';
+	}
+}
+
+let docContentMap: Record<string, string> = {};
+
+DOC_PRESETS.forEach(doc => {
+	const saved = localStorage.getItem('doc_content_' + doc.id);
+	docContentMap[doc.id] = saved || doc.content;
+});
+
+const cmWrapperPane = document.getElementById('codemirror-wrapper-pane') as HTMLDivElement;
+const renderedDocPane = document.getElementById('rendered-doc-view-pane') as HTMLDivElement;
+const inspectorPane = document.getElementById('inspector-output-pane') as HTMLDivElement;
+const currentTitleEl = document.getElementById('current-doc-title') as HTMLSpanElement;
+const searchInput = document.getElementById('doc-search-input') as HTMLInputElement;
+
+const btnViewEditor = document.getElementById('view-mode-editor');
+const btnViewRendered = document.getElementById('view-mode-rendered');
+
+let editor: EditorInstance | null = null;
+let currentDocId = '';
+
+function initDocsEditor(initialDocText: string) {
+	if (!cmWrapperPane) return;
+	if (editor) editor.destroy();
+
+	editor = createEditor({
+		container: cmWrapperPane,
+		initialValue: initialDocText,
+		onChange(currentText) {
+			if (currentDocId) {
+				docContentMap[currentDocId] = currentText;
+				localStorage.setItem('doc_content_' + currentDocId, currentText);
+				updateRenderedDocView(currentText);
+				evaluateCodeOutputs(currentText);
+			}
+		}
+	});
+}
+
+function updateRenderedDocView(markdownText: string) {
+	if (renderedDocPane) {
+		renderedDocPane.innerHTML = marked.parse(markdownText) as string;
+	}
+}
+
+function setViewMode(mode: string) {
+	if (mode === 'editor') {
+		cmWrapperPane?.classList.remove('hidden');
+		renderedDocPane?.classList.add('hidden');
+
+		btnViewEditor?.classList.add('bg-white', 'text-primary', 'shadow-xs');
+		btnViewEditor?.classList.remove('text-on-surface-variant');
+
+		btnViewRendered?.classList.remove('bg-white', 'text-primary', 'shadow-xs');
+		btnViewRendered?.classList.add('text-on-surface-variant');
+	} else {
+		cmWrapperPane?.classList.add('hidden');
+		renderedDocPane?.classList.remove('hidden');
+
+		btnViewRendered?.classList.add('bg-white', 'text-primary', 'shadow-xs');
+		btnViewRendered?.classList.remove('text-on-surface-variant');
+
+		btnViewEditor?.classList.remove('bg-white', 'text-primary', 'shadow-xs');
+		btnViewEditor?.classList.add('text-on-surface-variant');
+	}
+}
+
+btnViewEditor?.addEventListener('click', () => setViewMode('editor'));
+btnViewRendered?.addEventListener('click', () => setViewMode('rendered'));
+
+function loadDocumentBySlug(slug: string, pushState = false) {
+	activeSlug = slug;
+	const doc = DOC_PRESETS.find(d => d.slug === slug || d.id === slug) || DOC_PRESETS[0];
+	if (!doc) return;
+
+	currentDocId = doc.id;
+	if (currentTitleEl) currentTitleEl.innerText = doc.title;
+
+	if (pushState) {
+		const newUrl = '/docs/' + doc.slug;
+		window.history.pushState({ slug: doc.slug }, '', newUrl);
+	}
+	
+	const content = docContentMap[doc.id] || doc.content;
+	initDocsEditor(content);
+	updateRenderedDocView(content);
+
+	document.querySelectorAll('.doc-link-btn').forEach(el => {
+		if (el.getAttribute('data-slug') === doc.slug || el.getAttribute('data-id') === doc.id) {
+			el.classList.add('!bg-primary-container', '!text-on-primary-container', '!font-semibold');
+		} else {
+			el.classList.remove('!bg-primary-container', '!text-on-primary-container', '!font-semibold');
+		}
+	});
+
+	evaluateCodeOutputs(content);
+}
+
+function evaluateCodeOutputs(markdownText: string) {
+	if (!inspectorPane) return;
+
+	inspectorPane.innerHTML = '';
+	let foundCodeBlocks = 0;
+
+	const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+	let match;
+
+	while ((match = codeBlockRegex.exec(markdownText)) !== null) {
+		const lang = (match[1] || '').toLowerCase().trim();
+		const codeText = match[2].trim();
+		const index = foundCodeBlocks + 1;
+
+		if (lang === 'mmt' || codeText.includes('node:') || codeText.includes('table:')) {
+			foundCodeBlocks++;
+			const mmtHtml = renderMMT(codeText);
+			const card = document.createElement('div');
+			card.className = 'bg-white border border-outline-variant rounded-2xl p-5 shadow-xs';
+			card.innerHTML = `
+				<div class="flex items-center justify-between mb-3 border-b border-outline-variant pb-2">
+					<span class="font-bold text-xs text-primary">📐 MMT Diagram & Table Output</span>
+					<span class="text-[10px] font-mono bg-surface-container-high text-on-primary-container px-2.5 py-0.5 rounded-full font-semibold">Block #${index}</span>
+				</div>
+				${mmtHtml}
+			`;
+			inspectorPane.appendChild(card);
+		} else if (lang === 'minimatic' || codeText.includes('state') || codeText.includes('button')) {
+			foundCodeBlocks++;
+			const miniHtml = renderMinimatic(codeText);
+			const card = document.createElement('div');
+			card.className = 'bg-white border border-outline-variant rounded-2xl p-5 shadow-xs';
+			card.innerHTML = `
+				<div class="flex items-center justify-between mb-3 border-b border-outline-variant pb-2">
+					<span class="font-bold text-xs text-primary">⚡ Minimatic State Analyzer Output</span>
+					<span class="text-[10px] font-mono bg-surface-container-high text-on-primary-container px-2.5 py-0.5 rounded-full font-semibold">Block #${index}</span>
+				</div>
+				${miniHtml}
+			`;
+			inspectorPane.appendChild(card);
+		} else if (lang === 'python' || codeText.includes('def ') || codeText.includes('print(')) {
+			foundCodeBlocks++;
+			const outputId = 'py_inspector_out_' + index;
+			const card = document.createElement('div');
+			card.className = 'bg-white border border-outline-variant rounded-2xl p-5 shadow-xs';
+			card.innerHTML = `
+				<div class="flex items-center justify-between mb-3 border-b border-outline-variant pb-2">
+					<span class="font-bold text-xs text-primary">🐍 Python Code Output Console</span>
+					<button class="run-py-btn bg-primary text-on-primary border-none text-[11px] font-medium px-3.5 py-1 rounded-full cursor-pointer hover:bg-primary-hover transition-colors">Run Code</button>
+				</div>
+				<pre class="bg-surface-container-low p-3.5 rounded-xl text-xs font-mono mb-3 overflow-x-auto border border-outline-variant"><code>${codeText}</code></pre>
+				<div id="${outputId}" class="py-output"></div>
+			`;
+			inspectorPane.appendChild(card);
+
+			const btn = card.querySelector('.run-py-btn');
+			if (btn) {
+				btn.addEventListener('click', () => runPythonCode(codeText, outputId));
+			}
+			runPythonCode(codeText, outputId);
+		}
+	}
+
+	if (foundCodeBlocks === 0) {
+		inspectorPane.innerHTML = `
+			<div class="bg-white border border-outline-variant rounded-2xl p-8 text-center text-on-surface-variant">
+				<div class="text-3xl mb-2">🔍</div>
+				<div class="font-bold text-sm text-on-surface mb-1">No Code Executables Found</div>
+				<div class="text-xs">Add a <code>\`\`\`python</code>, <code>\`\`\`mmt</code>, or <code>\`\`\`minimatic</code> block in the CodeMirror editor to see live visual output.</div>
+			</div>
+		`;
+	}
+}
+
+window.addEventListener('popstate', () => {
+	const currentPath = window.location.pathname.replace(/\/$/, '');
+	if (currentPath.startsWith('/docs/') && currentPath.length > 6) {
+		const slug = currentPath.replace('/docs/', '');
+		loadDocumentBySlug(slug, false);
+	}
+});
+
+document.querySelectorAll('.doc-link-btn').forEach(btn => {
+	btn.addEventListener('click', (e) => {
+		e.preventDefault();
+		const target = e.currentTarget as HTMLElement;
+		const slug = target.getAttribute('data-slug');
+		if (slug) loadDocumentBySlug(slug, true);
+	});
+});
+
+searchInput?.addEventListener('input', (e) => {
+	const query = (e.target as HTMLInputElement).value.toLowerCase();
+	let visibleCount = 0;
+
+	document.querySelectorAll('.doc-link-btn').forEach(btn => {
+		const el = btn as HTMLElement;
+		const title = el.getAttribute('data-title') || '';
+		if (title.includes(query)) {
+			(el.closest('.sub-li') as HTMLElement).style.display = 'block';
+			visibleCount++;
+		} else {
+			(el.closest('.sub-li') as HTMLElement).style.display = 'none';
+		}
+	});
+
+	const badge = document.getElementById('doc-count-badge');
+	if (badge) badge.innerText = String(visibleCount);
+});
+
+window.addEventListener('keydown', (e) => {
+	if (e.key === '/' && document.activeElement !== searchInput) {
+		e.preventDefault();
+		searchInput?.focus();
+	}
+});
+
+document.getElementById('btn-reset')?.addEventListener('click', () => {
+	const doc = DOC_PRESETS.find(d => d.slug === activeSlug || d.id === currentDocId);
+	if (doc && editor) {
+		docContentMap[doc.id] = doc.content;
+		localStorage.removeItem('doc_content_' + doc.id);
+		editor.setValue(doc.content);
+		updateRenderedDocView(doc.content);
+		evaluateCodeOutputs(doc.content);
+	}
+});
+
+document.getElementById('btn-copy')?.addEventListener('click', () => {
+	if (editor) {
+		const text = editor.getValue();
+		navigator.clipboard.writeText(text);
+		const btn = document.getElementById('btn-copy');
+		if (btn) {
+			btn.innerText = 'Copied!';
+			setTimeout(() => btn.innerText = 'Copy MD', 2000);
+		}
+	}
+});
+
+if (activeSlug) loadDocumentBySlug(activeSlug, false);
+</script>
+
+<style>
+details[open] > summary .caret {
+	transform: rotate(90deg);
+}
+
+#codemirror-wrapper-pane .cm-editor {
+	height: 100%;
+}
+
+/* Rich Markdown Rendered Document Typography (DESIGN.md Material 3 specs) */
+.markdown-render-body h1 {
+	font-family: var(--font-display);
+	font-size: 2rem;
+	font-weight: 700;
+	color: #1b6ef3;
+	border-bottom: 2px solid #e8f0fe;
+	padding-bottom: 0.5rem;
+	margin-bottom: 1.25rem;
+	margin-top: 0;
+	letter-spacing: -0.02em;
+}
+
+.markdown-render-body h2 {
+	font-family: var(--font-display);
+	font-size: 1.45rem;
+	font-weight: 600;
+	color: #202124;
+	margin-top: 1.75rem;
+	margin-bottom: 0.75rem;
+	letter-spacing: -0.01em;
+}
+
+.markdown-render-body h3 {
+	font-family: var(--font-display);
+	font-size: 1.2rem;
+	font-weight: 600;
+	color: #202124;
+	margin-top: 1.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.markdown-render-body p {
+	margin-bottom: 1rem;
+	line-height: 1.65;
+	color: #202124;
+}
+
+.markdown-render-body code {
+	background: #e8f0fe;
+	padding: 0.15rem 0.4rem;
+	border-radius: 0.25rem;
+	font-size: 0.85rem;
+	color: #0b57d0;
+	font-family: 'Roboto Mono', monospace;
+}
+
+.markdown-render-body pre {
+	background: #f7f9ff;
+	border: 1px solid #bdc1c6;
+	padding: 1rem;
+	border-radius: 0.75rem;
+	overflow-x: auto;
+	margin-bottom: 1.25rem;
+}
+
+.markdown-render-body pre code {
+	background: transparent;
+	padding: 0;
+	color: inherit;
+}
+
+.markdown-render-body ul, .markdown-render-body ol {
+	margin-bottom: 1rem;
+	padding-left: 1.5rem;
+}
+
+.markdown-render-body ul {
+	list-style-type: disc;
+}
+
+.markdown-render-body ol {
+	list-style-type: decimal;
+}
+
+.markdown-render-body li {
+	margin-bottom: 0.35rem;
+}
+
+.markdown-render-body blockquote {
+	border-left: 4px solid #1b6ef3;
+	background: #ecf3fe;
+	padding: 0.75rem 1rem;
+	margin-bottom: 1.25rem;
+	border-radius: 0 0.5rem 0.5rem 0;
+	color: #5f6368;
+	font-style: italic;
+}
+
+.markdown-render-body table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 1.25rem;
+}
+
+.markdown-render-body th, .markdown-render-body td {
+	border: 1px solid #bdc1c6;
+	padding: 0.5rem 0.75rem;
+	text-align: left;
+}
+
+.markdown-render-body th {
+	background: #ecf3fe;
+	font-weight: 600;
+	color: #0b57d0;
+}
+</style>

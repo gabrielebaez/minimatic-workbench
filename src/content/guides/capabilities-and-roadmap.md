@@ -1,0 +1,242 @@
+# Minimatic — Capabilities and Roadmap
+
+**Date:** 2026-08-21
+**Status:** Assessment of the kernel after the pattern-language and
+rewriting work (guards, alternatives, `Hold`/`ReleaseHold`, `:>`, `//.`)
+and the `Dict` layer
+**Scope:** what the language does today, what it could do once the missing
+heads exist, and what would still be missing after that
+
+Every claim here was produced by running the kernel, not by reading the
+design docs. Where the two disagree, this document describes the kernel.
+
+---
+
+## 1. Why this document
+
+The design docs describe the language as intended; `IMPLEMENTATION_PLAN.md`
+describes the MVP as shipped; proposal 001 describes a set of corrections.
+None of them answers the practical question — *what can you actually write
+in Minimatic right now, and what stops you.*
+
+The distinction that organises everything below: **a missing head is an
+afternoon's work; a missing core capability is a language change.** Most of
+what Minimatic lacks is the former. What it lacks in the latter is small,
+specific, and mostly invisible in the docs because the docs describe it as
+already working.
+
+---
+
+## 2. What works today
+
+63 registered heads:
+
+```
+Args CompoundExpression Dict EmptyQ Err Head Hold Lambda List Range
+ReleaseHold ReplaceAll ReplaceRepeated Rule RuleDelayed Set SetDelayed
+__pipe__ and append catch divide each equal finally first fold for
+from_pairs greater greater_eq has_key if is_err key_drop key_get key_set
+keys length less less_eq map map_keys map_values merge minus mod negate not
+not_equal or plus power print recover rest switch times to_pairs unwrap
+unwrap_err values which
+```
+
+Working and covered by 296 tests:
+
+- **Evaluation** — strict, single-pass, `head(args)` all the way down. No
+  special forms: `if`/`switch`/`which`/`for`/`each`/`;` are ordinary heads
+  that skip branches via their own hold attributes.
+- **Dispatch** — specificity-scored, most-specific-first, recursing into
+  nested compound patterns. Declaration order breaks only exact ties.
+- **Patterns** — blanks, typed blanks (`_int`, `_list`, `_err`, …),
+  sequence blanks, named binds, compound patterns whose head is pinned
+  literally, alternatives (`_int | _string`), and guards (`/;`) at both
+  argument and clause level.
+- **Functions** — closures, currying, higher-order use, recursion, mutual
+  recursion.
+- **Pipes** — `|>` and `//`, with `$` placeholders for argument position;
+  `/@` for map.
+- **Rewriting** — `/.` and `//.` (to a normal form) over both evaluated
+  data and `Hold`-captured code, with immediate (`->`) or delayed (`:>`)
+  rules, written out or held in a variable.
+- **Errors as values** — `Err(kind, detail)`, pipe short-circuiting,
+  `catch`/`recover`/`finally`/`unwrap`/`unwrap_err`/`is_err`. No `Ok`
+  wrapper.
+- **Dicts** — the `{k -> v}` literal, canonically ordered so equality and
+  structural matching agree, plus the ten §6 heads, `length` and `EmptyQ`.
+- **Structure inspection** — `Head`, `Args`, total over every value.
+- **Host integration** — `register_head`, and Markdown files as runnable
+  scripts.
+
+### 2.1 Self-hosting is real
+
+The strongest evidence that the core is sufficient: the derived list layer
+can be written *in Minimatic*. These run today.
+
+```
+myfold(f: _, i: _, [])              := i
+myfold(f: _, i: _, [x: _, r: ___])  := myfold(f, f(i, x), r)
+
+prepend(xs: _list, x: _)            := fold(xs, append, [x])
+
+myfilter(p: _, [])                  := []
+myfilter(p: _, [x: _, r: ___])      := if(p(x), prepend(myfilter(p, r), x),
+                                             myfilter(p, r))
+```
+
+`fold`, `filter`, `take`, `reverse`, `length` and `prepend` all work from
+clause dispatch, specificity and sequence patterns alone — the bar
+`docs/the prelude.md` §13 sets for whether the core is enough for real list
+work. It clears it, subject to §3.2 below.
+
+---
+
+## 3. The core's ceiling
+
+These are the limits that filling in heads will not touch.
+
+### 3.1 Anonymous multi-argument lambdas do not exist
+
+`(a, b) -> a + b` is a `MinimaticSyntaxError`. A *named* two-argument head
+works fine as a callback:
+
+```
+combine(a: _, b: _) := a * 10 + b
+fold([1, 2, 3], combine, 0)          (* 123 *)
+```
+
+So the gap is specifically lambda syntax. It affects every callback that
+takes two arguments — `fold`, `zip_with`, `sort_by` comparators, `catch`
+handlers that want kind and detail separately. This is the largest
+expressive limit in the language and among the smallest to fix.
+
+### 3.2 Self-hosted recursion caps out around 200–300 elements
+
+Python's recursion limit is 1000 and there is no tail-call elimination.
+Measured with the self-hosted `myfold` above:
+
+| input | result |
+|---|---|
+| 200 elements | works |
+| 400 elements | `RecursionError` |
+| builtin `fold`, 2000 elements | works |
+
+So §2.1's self-hosting is genuine but capped at small inputs; anything
+sizeable still has to be a Python head. This bounds how much of the Prelude
+can honestly move into Minimatic.
+
+`RecursionError` also **escapes `MinimaticError`** — a fourth escaping
+class beyond the three proposal 001 Phase C closed. Host code catching "any
+Minimatic problem" still misses runaway recursion.
+
+### 3.3 `Attributes(f) := HoldAll` silently does nothing
+
+It looks like it works. It does not. `Attributes` is not a registered head,
+so the statement simply defines *a clause named `Attributes`* and sets no
+attribute — verified: the head goes on evaluating its arguments, and
+`registry.attributes(f)` stays empty.
+
+`docs/the language.md` §10 presents this as *the* way to declare hold
+behavior, and states there is "exactly one hold mechanism" available
+"identically to user-defined functions and to Python-registered heads".
+Today hold attributes are Python-side only: **a Minimatic-level user cannot
+write a macro at all.** Failing quietly makes this the worst of the gaps.
+
+### 3.4 ~~No `Hold`~~ — closed
+
+`Hold`, `ReleaseHold`, `:>` and `//.` now ship, so `/.` reaches unevaluated
+code as well as data and the design docs' symbolic examples run as written.
+What remains a limit is §3.3: rewriting is the *only* way to see an
+unevaluated expression, because a Minimatic-level user still cannot declare
+a head of their own that holds its arguments.
+
+### 3.5 Smaller core gaps
+
+- **Indexing is unimplemented.** `xs[0]` and `d["k"]` are syntax errors,
+  though `docs/the language.md` §6.1 advertises them. It is not just a
+  missing head: postfix `[...]` would end the parser's "statements are
+  self-delimiting" property, which `parse_all` and every Markdown script
+  rely on, so it needs a statement-separator decision first.
+- **Sequence blanks only work in final position.** `f(a: __, z: _)` never
+  matches — a documented simplification in `match.py`. A sequence blank
+  inside an alternation (`__ | _int`) does not match either, for the same
+  structural reason.
+- **No literal-symbol patterns.** A bare symbol in a pattern always binds,
+  which is what blocked symbol-valued `Err` kinds.
+
+---
+
+## 4. Assuming every missing head lands
+
+The head-level gaps are large in volume but ordinary in nature: the entire
+string layer, most of the list layer
+(`filter`, `sort`, `zip`, `unique`, `group_by`, `find`, `concat`, `take`,
+`drop`, …), the meta heads (`MatchQ`, `match`, `Cases`, type predicates),
+`and`/`or`/`xor`, the numeric helpers, I/O, and the functional combinators.
+
+**With those in place, Minimatic is a competent strict functional
+expression language.** Enough for business rules, validation, config and
+DSL evaluation, data transformation over modest collections, and wiring
+host Python algorithms together — which is precisely the "knowledge and
+computation workbench" the language positions itself as.
+
+**What it still could not do**, because these are §3 and not heads:
+
+| Cannot | Blocked by |
+|---|---|
+| Write a two-argument callback without naming it | §3.1 |
+| Process more than a few hundred elements in Minimatic-level code | §3.2 |
+| Define a macro, or any head that sees unevaluated arguments | §3.3 |
+| Index a list | §3.5 |
+
+Put plainly: **the Prelude is what stands between Minimatic and being
+useful; the §3 gaps are what stand between it and being what its own
+documentation already describes.**
+
+---
+
+## 5. Recommended order
+
+1. **Multi-argument lambdas** (§3.1). Smallest change, largest unlock. Do
+   it first — otherwise every derived head taking a callback in step 3 gets
+   designed around the limitation, and re-designed afterwards.
+
+2. **`Attributes` as a real head** (§3.3). Makes language doc §10 true,
+   enables user-level macros, and removes a statement that currently fails
+   silently. Small, and it stops the docs lying about a core guarantee.
+
+3. **Prelude build-out.** Strings, the rest of the list layer, type
+   predicates, `MatchQ`/`match`/`Cases`. The largest volume of
+   work and the most user-visible value, unblocked by (1). Much of it can
+   be written in Minimatic per §2.1, within the §3.2 size limit.
+
+4. ~~**`Hold` / `ReleaseHold` / `:>`**~~ **Done.** Both open questions
+   were settled in the process: `docs/the language.md` §16.4 (a release
+   evaluates in the scope it is released in — `Hold` captures nothing) and
+   `docs/the kernel.md` §14.4 (a delayed RHS is never evaluated during
+   rewriting, so nothing changes about error identity).
+
+5. **Recursion depth** (§3.2). At minimum convert `RecursionError` into a
+   `MinimaticError` so it stops escaping; properly, trampoline self-calls
+   so self-hosted list code scales.
+
+Independently: **Phase D of proposal 001** — reconciling
+`docs/the language.md`, `docs/the kernel.md` and `docs/the prelude.md` with
+what shipped — remains outstanding. Several gaps above are only visible
+*as* gaps because those documents describe them as working.
+
+---
+
+## 6. Reproducing this
+
+```bash
+uv run pytest                              # 296 passing
+uv run python -m minimatic examples/tour.md
+```
+
+Each claim in §2 and §3 was checked by direct `Kernel.eval` probes. The
+three worth re-running before trusting this document again:
+
+- the self-hosted `fold`/`filter` definitions in §2.1;
+- the 200-versus-400 element recursion boundary in §3.2;
+- `Attributes(f) := HoldAll` leaving `registry.attributes(f)` empty (§3.3).

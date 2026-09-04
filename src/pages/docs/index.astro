@@ -1,0 +1,34 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import DocsWorkbench from '../../components/DocsWorkbench.astro';
+
+const contentFiles = import.meta.glob('../../content/**/*.md', { query: '?raw', eager: true, import: 'default' });
+
+const firstEntry = Object.entries(contentFiles)[0];
+let initialSlug = '';
+let initialContent = '';
+let initialTitle = '';
+let initialPath = '';
+
+if (firstEntry) {
+  const [filePath, content] = firstEntry;
+  initialPath = filePath.replace(/^.*\/content\//, '').replace(/\.md$/, '');
+  initialSlug = initialPath.toLowerCase().replace(/[\/\s]+/g, '/');
+  const filename = initialPath.split('/').pop() || '';
+  initialTitle = filename
+    .replace(/\.md$/, '')
+    .split(/[-_]/)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+  initialContent = content as string;
+}
+---
+
+<Layout title="Documentation | Minimatic Interactive Workbench">
+	<DocsWorkbench 
+    initialSlug={initialSlug} 
+    initialContent={initialContent} 
+    initialTitle={initialTitle} 
+    initialPath={initialPath} 
+  />
+</Layout>
